@@ -1,7 +1,15 @@
 import * as readline from 'node:readline/promises';
 import { stdin as input, stdout as output } from 'node:process';
-const rl = readline.createInterface({ input, output });
 
+class Expr {
+	constructor(expr, remaining) {
+		this.expr = expr;
+		this.remaining = remaining;
+	}
+	getValue() {
+		return eval(this.expr);
+	}
+}
 
 
 function checkNum(x) {
@@ -14,6 +22,7 @@ function checkNum(x) {
 
 // Accept and parse command-line inputs
 async function takeInput() {
+	const rl = readline.createInterface({ input, output });
 	const inputGoal = await rl.question('Enter goal number ');
 	const inputNums = await rl.question('Enter given numbers separated by comma and space ');
 	rl.close();
@@ -29,33 +38,40 @@ function parseInput(value) {
 		checkNum(x);
 	});
 	// Close interface and call solver
-	rl.close();
 	console.log(createNumHelper(goal, numbers));
 }
 
 
 
-var operators = ['*', '+', '-', '/'];
+const operators = ['*', '+', '-', '/'];
 
-function createNum(goal, expr, remaining) {
-	var expr_val = eval(expr);
-	var poss_results = [];
-
-	if (remaining.length == 0 && expr_val == goal) {
-		poss_results.push(expr);
+function evalOrCreateExprs(goal, expr) {
+	if (expr.remaining.length == 0 && expr.getValue() == goal) {
+		return expr;
 	}
+}
+
+function createExprs(goal, expr) {
+	var poss_results = [expr]
 	
-	remaining.forEach(function(x, index) {
-		var new_remaining = remaining.toSpliced(index, 1);
+	
+	expr.remaining.forEach(function(x, index) {
+		var new_remaining = expr.remaining.toSpliced(index, 1);
+		
 		operators.forEach(function(op, index) {
-			var new_expr = expr + op + x;
-			var result = createNum(goal, new_expr, new_remaining);
-			if (result.length > 0) {
-				poss_results = poss_results.concat(result);
-			}
+			// No-parentheses case
+			var newExpr = new Expr(expr.expr + op + x, new_remaining);
+			poss_results = poss_results.concat(createExprs(goal, newExpr));
+			
+			// Also handle parentheses
+			let inners = createExprs(goal, new Expr(x, new_remaining));
+			inners.forEach(function(inner, index) {
+				newExpr = new Expr(expr.expr + op + '(' + inner.expr + ')', inner.remaining);
+				poss_results = poss_results.concat(createExprs(goal, newExpr))
+			});
+			
 		});
 	});
-	
 	return poss_results;
 }
 
@@ -65,16 +81,21 @@ function createNum(goal, expr, remaining) {
 function createNumHelper(goal, numbers) {
 	var poss_results = [];
 	numbers.forEach(function(x, index) {
-		var result = createNum(goal, x, numbers.toSpliced(index, 1));
-		if (result.length > 0) {
-			poss_results = poss_results.concat(result);
+		var results = createExprs(goal, new Expr(x, numbers.toSpliced(index, 1)));
+		if (results.length > 0) {
+			poss_results = poss_results.concat(results);
 		}
 	});
 	return poss_results;
 }
 
-takeInput()
-	.then(parseInput)
-	.catch((e) => {
-		console.error(e.message);
-	});
+function runOnce() {
+	takeInput()
+		.then(parseInput)
+		//.catch((e) => {
+			//console.error(e.message);
+			//runOnce();
+		//});
+}
+
+runOnce();
