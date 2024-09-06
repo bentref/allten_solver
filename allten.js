@@ -1,4 +1,4 @@
-import * as readline from 'node:readline';
+import * as readline from 'node:readline/promises';
 import { stdin as input, stdout as output } from 'node:process';
 const rl = readline.createInterface({ input, output });
 
@@ -13,29 +13,26 @@ function checkNum(x) {
 }
 
 // Accept and parse command-line inputs
-function takeInput() {
-	var inputNums = [];
-	var inputGoal;
-	try {
-		rl.question('Enter goal number ', (answer) => {
-			inputGoal = checkNum(answer);
-			rl.question('Enter given numbers separated by comma and space ', (answer) => {
-				answer = answer.split(', ');
-				answer.forEach(function(x, index) {
-					checkNum(x);
-					inputNums = inputNums.concat(x);
-				});
-				// Close interface and call solver
-				rl.close();
-				console.log(createNumHelper(inputGoal, inputNums));
-			});
-		});
-	} catch(error) {
-		console.error(error.message);
-	}
-
-
+async function takeInput() {
+	const inputGoal = await rl.question('Enter goal number ');
+	const inputNums = await rl.question('Enter given numbers separated by comma and space ');
+	rl.close();
+	return [inputGoal, inputNums]
 }
+
+function parseInput(value) {
+	var inputGoal = value[0];
+	var inputNums = value[1];
+	var goal = checkNum(inputGoal);
+	var numbers = inputNums.split(', ');
+	numbers.forEach(function(x, index) {
+		checkNum(x);
+	});
+	// Close interface and call solver
+	rl.close();
+	console.log(createNumHelper(goal, numbers));
+}
+
 
 
 var operators = ['*', '+', '-', '/'];
@@ -76,4 +73,8 @@ function createNumHelper(goal, numbers) {
 	return poss_results;
 }
 
-takeInput();
+takeInput()
+	.then(parseInput)
+	.catch((e) => {
+		console.error(e.message);
+	});
