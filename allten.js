@@ -2,26 +2,38 @@ import * as readline from 'node:readline';
 import { stdin as input, stdout as output } from 'node:process';
 const rl = readline.createInterface({ input, output });
 
-takeInput();
+
+
+function checkNum(x) {
+	x = Number(x);
+	if (isNaN(x) || x < 0 || x > 9) {
+		throw EvalError("You have entered an invalid number");
+	}
+	return x;
+}
 
 // Accept and parse command-line inputs
 function takeInput() {
 	var inputNums = [];
 	var inputGoal;
-	rl.question('Enter goal number ', (answer) => {
-		inputGoal = Number(answer);
-		rl.question('Enter given numbers separated by comma and space ', (answer) => {
-			answer = answer.split(', ');
-			answer.forEach(function(x, index) {
-				x = Number(x);
-				x = '' + x;
-				inputNums = inputNums.concat(x);
+	try {
+		rl.question('Enter goal number ', (answer) => {
+			inputGoal = checkNum(answer);
+			rl.question('Enter given numbers separated by comma and space ', (answer) => {
+				answer = answer.split(', ');
+				answer.forEach(function(x, index) {
+					checkNum(x);
+					inputNums = inputNums.concat(x);
+				});
+				// Close interface and call solver
+				rl.close();
+				console.log(createNumHelper(inputGoal, inputNums));
 			});
-			// Close interface and call solver
-			rl.close();
-			console.log(createNumHelper(inputGoal, inputNums));
 		});
-	});
+	} catch(error) {
+		console.error(error.message);
+	}
+
 
 }
 
@@ -63,3 +75,5 @@ function createNumHelper(goal, numbers) {
 	});
 	return poss_results;
 }
+
+takeInput();
